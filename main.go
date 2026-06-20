@@ -12,51 +12,23 @@ func main() {
 		return
 	}
 
-	secretID, err := keychainGet("secret-id")
+	token, err := getRevolutToken()
 	if err != nil {
-		secretID = os.Getenv("GOCARDLESS_SECRET_ID")
-	}
-	secretKey, err := keychainGet("secret-key")
-	if err != nil {
-		secretKey = os.Getenv("GOCARDLESS_SECRET_KEY")
-	}
-
-	if secretID == "" || secretKey == "" {
-		fmt.Fprintln(os.Stderr, "GoCardless API credentials not found.")
-		fmt.Fprintln(os.Stderr, "Set GOCARDLESS_SECRET_ID and GOCARDLESS_SECRET_KEY environment variables.")
+		fmt.Fprintln(os.Stderr, "Authentication failed:", err)
 		os.Exit(1)
 	}
 
-	// Store credentials in keychain for future runs
-	keychainSet("secret-id", secretID)
-	keychainSet("secret-key", secretKey)
-
-	client := NewClient(secretID, secretKey)
-
-	accountID, err := keychainGet("account-id")
-	if err != nil || accountID == "" {
-		if err := authenticate(client, secretID, secretKey); err != nil {
+	amount, currency, err := getRevolutBalance(token)
+	if err != nil {
+		// Token may have expired — clear and retry
+		keychainDelete("revolut-token")
+		token, err = getRevolutToken()
+		if err != nil {
 			fmt.Fprintln(os.Stderr, "Authentication failed:", err)
 			os.Exit(1)
 		}
-		accountID, _ = keychainGet("account-id")
-	}
-
-	amount, currency, err := client.GetBalance(accountID)
-	if err != nil {
-		if err.Error() == "needs-auth" || err.Error() == "auth: needs-auth" {
-			keychainDeleteAll()
-			if err := authenticate(client, secretID, secretKey); err != nil {
-				fmt.Fprintln(os.Stderr, "Authentication failed:", err)
-				os.Exit(1)
-			}
-			accountID, _ = keychainGet("account-id")
-			amount, currency, err = client.GetBalance(accountID)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Unable to fetch balance. Try again.")
-				os.Exit(1)
-			}
-		} else {
+		amount, currency, err = getRevolutBalance(token)
+		if err != nil {
 			fmt.Fprintln(os.Stderr, "Unable to fetch balance. Try again.")
 			os.Exit(1)
 		}
