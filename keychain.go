@@ -42,7 +42,7 @@ func keychainDelete(account string) error {
 }
 
 func keychainDeleteAll() {
-	for _, a := range []string{"gocardless-access", "gocardless-refresh", "account-id", "requisition-id", "secret-id", "secret-key", "revolut-token"} {
+	for _, a := range []string{"gocardless-access", "gocardless-refresh", "account-id", "requisition-id", "secret-id", "secret-key"} {
 		keychainDelete(a)
 	}
 }
