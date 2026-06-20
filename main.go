@@ -7,6 +7,11 @@ import (
 )
 
 func main() {
+	if os.Getenv("MOCK") == "true" {
+		mockMain()
+		return
+	}
+
 	secretID, err := keychainGet("secret-id")
 	if err != nil {
 		secretID = os.Getenv("GOCARDLESS_SECRET_ID")
